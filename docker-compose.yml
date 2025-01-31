@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: personal_finance_tracking_backend_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: ./personal_finance_tracking_backend
+      dockerfile: Dockerfile
+    container_name: elixir-phoenix
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "ecto://postgres:postgres@db:5432/personal_finance_tracking_backend_dev"
+      SECRET_KEY_BASE: "some_secret_key"
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./personal_finance_tracking_backend:/app
+    command: >
+      sh -c "mix deps.get &&
+             mix ecto.create &&
+             mix phx.server"
+
+  frontend:
+    build:
+        context: ./frontend
+        dockerfile: Dockerfile
+    container_name: react-frontend
+    ports:
+      - "5173:5173"  
+    volumes:
+      - ./frontend:/app
+    command: >
+      sh -c "npm install && npm run dev -- --host"
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:
